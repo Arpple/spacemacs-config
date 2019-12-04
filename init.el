@@ -32,23 +32,24 @@ This function should only modify configuration layer settings."
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
-   '(javascript
+   '(yaml
+     (javascript :variables
+                 javascript-disable-tern-port-files nil)
      html
      elixir
      markdown
-     ;; ----------------------------------------------------------------
-     ;; Example of useful layers you may want to use right away.
-     ;; Uncomment some layer names and press `SPC f e R' (Vim style) or
-     ;; `M-m f e R' (Emacs style) to install them.
-     ;; ----------------------------------------------------------------
+     csharp
      (auto-completion :variables
                       auto-completion-return-key-behavior 'complete
-                      auto-completion-tab-key-behavior 'complete)
+                      auto-completion-tab-key-behavior 'complete
+                      auto-completion-enable-help-tooltip t
+                      auto-completion-enable-snippets-in-popup nil)
      ;; better-defaults
      emacs-lisp
      ;; git
      ivy
      lsp
+     git
      multiple-cursors
      ;; org
      ;; (shell :variables
@@ -58,8 +59,12 @@ This function should only modify configuration layer settings."
      ;; syntax-checking
      treemacs
      themes-megapack
+     (typescript :variables
+                 typescript-fmt-on-save t
+                 typescript-indent-level 1
+                 typescript-backend 'lsp)
      centaur-tabs
-     ;; version-control
+     osx
      )
 
    ;; List of additional packages that will be installed without being
@@ -383,7 +388,7 @@ It should only modify the values of Spacemacs settings."
    ;; Select a scope to highlight delimiters. Possible values are `any',
    ;; `current', `all' or `nil'. Default is `all' (highlight any scope and
    ;; emphasis the current one). (default 'all)
-   dotspacemacs-highlight-delimiters 'all
+   dotspacemacs-highlight-delimiters 'current
 
    ;; If non-nil, start an Emacs server if one is not already running.
    ;; (default nil)
@@ -473,8 +478,78 @@ This function is called at the very end of Spacemacs startup, after layer
 configuration.
 Put your configuration code here, except for variables that should be set
 before packages are loaded."
+  ;; Makes *scratch* empty.
+  (setq initial-scratch-message "")
+
+  ;; Removes *scratch* from buffer after the mode has been set.
+  (defun remove-scratch-buffer ()
+    (if (get-buffer "*scratch*")
+        (kill-buffer "*scratch*")))
+  (add-hook 'after-change-major-mode-hook 'remove-scratch-buffer)
+
+  ;; Removes *messages* from the buffer.
   (setq-default message-log-max nil)
   (kill-buffer "*Messages*")
+
+  ;; Removes *Completions* from buffer after you've opened a file.
+  (add-hook 'minibuffer-exit-hook
+            '(lambda ()
+               (let ((buffer "*Completions*"))
+                 (and (get-buffer buffer)
+                      (kill-buffer buffer)))))
+
+  ;; Don't show *Buffer list* when opening multiple files at the same time.
+  (setq inhibit-startup-buffer-menu t)
+
+  ;; Show only one active window when opening multiple files at the same time.
+  (add-hook 'window-setup-hook 'delete-other-windows)
+
+  ;; git
+  (add-hook 'git-commit-mode-hook
+            (lambda () (save-selected-window (magit-process))))
+
+  ;; auto complete theme
+  (deftheme molokai-overrides) ;; set style for other plugins with monokai theme
+  (let ((class '((class color) (min-colors 257)))
+        (terminal-class '((class color) (min-colors 89))))
+    (custom-theme-set-faces
+     'molokai-overrides
+     ;; Company tweaks.
+     `(font-lock-comment-face
+       ((t :foreground "#FFFF00")))
+     `(company-tooltip
+       ((t :foreground "#F8F8F0"
+           :background "#293739"
+           :underline t)))
+     `(company-tooltip-selection
+       ((t :background "#808080"
+           :foreground "#F8F8F0")))
+     `(company-tooltip-annotation
+       ((t :inherit company-tooltip)))
+     `(company-tooltip-annotation-selection
+       ((t :inherit company-tooltip-selection)))
+     `(company-preview
+       ((t :inherit company-tooltip-selection)))
+     `(company-preview-common
+       ((t :inherit company-tooltip)))
+     `(company-tooltip-search
+       ((t :background "#13354A"
+           :foreground "#F8F8F0")))
+     `(company-scrollbar-fg
+       ((t :background "#F8F8F0")))
+     `(company-scrollbar-bg
+       ((t :background "#000000")))
+     ))
+
+  ;; auto complete key
+  (global-set-key (kbd "C-SPC") 'company-complete)
+
+  ;; vertical ruler
+  (defun vertical-ruler ()
+    (set-fill-column 100)
+    (fci-mode 1))
+
+  (add-hook 'prog-mode-hook 'vertical-ruler)
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -495,8 +570,10 @@ This function is called at the very end of Spacemacs initialization."
  '(js2-strict-missing-semi-warning nil)
  '(package-selected-packages
    (quote
-    (web-mode web-beautify tagedit slim-mode scss-mode sass-mode pug-mode prettier-js impatient-mode htmlize simple-httpd helm-css-scss helm helm-core haml-mode emmet-mode counsel-css company-web web-completion-data add-node-modules-path yasnippet-snippets lsp-ui lsp-treemacs ivy-yasnippet fuzzy flycheck-pos-tip pos-tip company-statistics company-lsp auto-yasnippet yasnippet ac-ispell auto-complete wgrep smex ivy-xref ivy-purpose ivy-hydra counsel-projectile ob-elixir helm-gtags ggtags flycheck-mix flycheck-credo dap-mode bui tree-mode lsp-mode dash-functional counsel-gtags counsel swiper ivy alchemist elixir-mode vmd-mode mmm-mode markdown-toc markdown-mode gh-md emoji-cheat-sheet-plus company-emoji company centaur-tabs zenburn-theme zen-and-art-theme white-sand-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme madhat2r-theme lush-theme light-soap-theme kaolin-themes jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme farmhouse-theme eziam-theme exotica-theme espresso-theme dracula-theme doom-themes django-theme darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme chocolate-theme autothemer cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme ws-butler writeroom-mode winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package treemacs-projectile treemacs-evil toc-org symon symbol-overlay string-inflection spaceline-all-the-icons restart-emacs request rainbow-delimiters popwin persp-mode pcre2el password-generator paradox overseer org-plus-contrib org-bullets open-junk-file nameless move-text macrostep lorem-ipsum link-hint indent-guide hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-mode-manager helm-make helm-ls-git helm-flx helm-descbinds helm-ag google-translate golden-ratio font-lock+ flycheck-package flx-ido fill-column-indicator fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-cleverparens evil-args evil-anzu eval-sexp-fu elisp-slime-nav editorconfig dumb-jump dotenv-mode doom-modeline diminish devdocs define-word column-enforce-mode clean-aindent-mode centered-cursor-mode auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line)))
- '(tab-always-indent (quote complete)))
+    (treemacs-magit smeargle magit-svn magit-gitflow magit-popup gitignore-templates gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link evil-magit magit transient git-commit with-editor omnisharp csharp-mode reveal-in-osx-finder osx-trash osx-dictionary osx-clipboard launchctl yaml-mode tide typescript-mode company-quickhelp web-mode web-beautify tagedit slim-mode scss-mode sass-mode pug-mode prettier-js impatient-mode htmlize simple-httpd helm-css-scss helm helm-core haml-mode emmet-mode counsel-css company-web web-completion-data add-node-modules-path yasnippet-snippets lsp-ui lsp-treemacs ivy-yasnippet fuzzy flycheck-pos-tip pos-tip company-statistics company-lsp auto-yasnippet yasnippet ac-ispell auto-complete wgrep smex ivy-xref ivy-purpose ivy-hydra counsel-projectile ob-elixir helm-gtags ggtags flycheck-mix flycheck-credo dap-mode bui tree-mode lsp-mode dash-functional counsel-gtags counsel swiper ivy alchemist elixir-mode vmd-mode mmm-mode markdown-toc markdown-mode gh-md emoji-cheat-sheet-plus company-emoji company centaur-tabs zenburn-theme zen-and-art-theme white-sand-theme underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme organic-green-theme omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mustang-theme monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme madhat2r-theme lush-theme light-soap-theme kaolin-themes jbeans-theme jazz-theme ir-black-theme inkpot-theme heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gandalf-theme flatui-theme flatland-theme farmhouse-theme eziam-theme exotica-theme espresso-theme dracula-theme doom-themes django-theme darktooth-theme darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme chocolate-theme autothemer cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme ws-butler writeroom-mode winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package treemacs-projectile treemacs-evil toc-org symon symbol-overlay string-inflection spaceline-all-the-icons restart-emacs request rainbow-delimiters popwin persp-mode pcre2el password-generator paradox overseer org-plus-contrib org-bullets open-junk-file nameless move-text macrostep lorem-ipsum link-hint indent-guide hybrid-mode hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-xref helm-themes helm-swoop helm-purpose helm-projectile helm-mode-manager helm-make helm-ls-git helm-flx helm-descbinds helm-ag google-translate golden-ratio font-lock+ flycheck-package flx-ido fill-column-indicator fancy-battery eyebrowse expand-region evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-textobj-line evil-surround evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state evil-lion evil-indent-plus evil-iedit-state evil-goggles evil-exchange evil-escape evil-ediff evil-cleverparens evil-args evil-anzu eval-sexp-fu elisp-slime-nav editorconfig dumb-jump dotenv-mode doom-modeline diminish devdocs define-word column-enforce-mode clean-aindent-mode centered-cursor-mode auto-highlight-symbol auto-compile aggressive-indent ace-link ace-jump-helm-line)))
+ '(tab-always-indent (quote complete))
+ '(treemacs-indentation 1)
+ '(treemacs-indentation-string "| "))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -507,7 +584,14 @@ This function is called at the very end of Spacemacs initialization."
  '(elixir-attribute-face ((t (:inherit font-lock-preprocessor-face))))
  '(font-lock-comment-delimiter-face ((t (:foreground "yellow" :slant italic))))
  '(font-lock-comment-face ((t (:foreground "yellow" :slant italic))))
+ '(font-lock-doc-face ((t (:foreground "yellow1" :slant italic))))
  '(font-lock-function-name-face ((t (:foreground "#A6FF2E" :slant italic))))
  '(font-lock-keyword-face ((t (:foreground "#F92672"))))
- '(font-lock-variable-name-face ((t (:foreground "#3BDAAF")))))
+ '(font-lock-variable-name-face ((t (:foreground "#3BDAAF"))))
+ '(js2-error ((t (:foreground "red" :underline t))))
+ '(js2-external-variable ((t (:foreground "orange" :underline t))))
+ '(js2-function-call ((t (:inherit font-lock-function-name-face))))
+ '(js2-function-param ((t (:foreground "gray100"))))
+ '(js2-jsdoc-type ((t (:inherit font-lock-type-face))))
+ '(treemacs-git-ignored-face ((t (:foreground "gray45")))))
 )
